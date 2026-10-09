@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+/* This app is styled entirely with Tailwind utility classes (the slate palette, bg-white cards,
+ * etc.) and has no dark-mode variant of its own — so the page is deliberately pinned to a light
+ * colour scheme rather than following the OS/browser preference, which would otherwise fight the
+ * explicit Tailwind classes on every card/modal and wash out text that doesn't set its own color. */
+:root {
+  color-scheme: light;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+}
