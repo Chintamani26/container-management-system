@@ -44,6 +44,13 @@ export interface SAPOrderRow {
   /** Raw PO type text straight from the file (e.g. "Ocean", "OCEAN HEVY"), if present — same
    * auto-draft purpose as `containerType`, distinct from `transportMode`. */
   poType?: string;
+  /** Data-quality flag computed at import time — every row is kept in state regardless of this
+   * value (100% row preservation; nothing is silently dropped), but it drives what the Planning
+   * stage and allocator do with the row. 'missing_data' means the row couldn't even be identified
+   * (no PO Number and/or no Material Code); 'zero_qty' means quantity <= 0; 'missing_weight' means
+   * quantity > 0 but weight is null/0. Checked in that priority order — a row gets one flag, not a
+   * combination. Absent/undefined means the row is clean. */
+  status?: 'missing_data' | 'zero_qty' | 'missing_weight';
 }
 
 /** Physical container types a ContainerSpec can describe. "LCL" is not physical — it's a

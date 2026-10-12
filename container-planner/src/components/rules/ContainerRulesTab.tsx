@@ -66,7 +66,7 @@ export function ContainerRulesTab() {
               practicalCbmPercent: 85,
             })
           }
-          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add Container Spec
@@ -88,7 +88,7 @@ export function ContainerRulesTab() {
             {visibleSpecs.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-3 py-6 text-center text-slate-400">
-                  {specs.length === 0 ? 'No container specs yet.' : 'No specs match that search.'}
+                  {specs.length === 0 ? 'No container specs yet.' : 'No matching container specs found.'}
                 </td>
               </tr>
             )}

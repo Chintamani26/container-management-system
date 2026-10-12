@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Package, TriangleAlert } from 'lucide-react';
 import { runAutoAllocation, type AllocationStrategy } from '../../engine/autoAllocator';
-import { useRawOrdersStore } from '../../store/useRawOrdersStore';
+import { useRawOrdersStore, usableRows } from '../../store/useRawOrdersStore';
 import { useFilterStore, applyFilters } from '../../store/useFilterStore';
 import { useMasterRulesStore } from '../../store/useMasterRulesStore';
 import { MissingRuleToast } from '../ui/MissingRuleToast';
@@ -119,7 +119,8 @@ function ContainerDetailCard({ allocation, index, defaultOpen }: { allocation: C
  * warehouse/export team needs, and routes genuinely small customer groups to LCL instead of
  * forcing them into an under-filled container. */
 export function Step4AutoAllocationWorkspace({ onNext, onEditRules }: Step4AutoAllocationWorkspaceProps) {
-  const rows = useRawOrdersStore((s) => s.rawImportedRows);
+  const allRows = useRawOrdersStore((s) => s.rawImportedRows);
+  const rows = useMemo(() => usableRows(allRows), [allRows]);
   const { selectedCustomerIds, selectedPlants, selectedShipWindows, selectedPorts, selectedPoNumbers } = useFilterStore();
   const { customerRules, containerSpecs } = useMasterRulesStore();
   const [selectedStrategy, setSelectedStrategy] = useState(0);
@@ -154,6 +155,20 @@ export function Step4AutoAllocationWorkspace({ onNext, onEditRules }: Step4AutoA
       </div>
 
       <MissingRuleToast orders={result.missingRuleOrders} onEditRules={onEditRules} />
+
+      {result.softNotices.length > 0 && (
+        <div className="flex flex-col gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <p className="flex items-center gap-1.5 font-medium">
+            <TriangleAlert className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+            Allocated using a fallback default — go tighten the real rule in Master Data when convenient:
+          </p>
+          <ul className="list-inside list-disc">
+            {result.softNotices.map((notice, i) => (
+              <li key={i}>{notice}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {strategy && Math.abs(inputQty - accountedQty) > 1e-6 && (
         <p className="flex items-center gap-1.5 rounded-md border border-red-300 bg-red-100 px-3 py-2 text-sm font-medium text-red-900">

@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from 'react';
 import { ArrowRight, Plus, TriangleAlert } from 'lucide-react';
 import { CheckboxDropdown } from '../ui/CheckboxDropdown';
-import { useRawOrdersStore } from '../../store/useRawOrdersStore';
+import { SingleSelectDropdown } from '../ui/SingleSelectDropdown';
+import { useRawOrdersStore, usableRows } from '../../store/useRawOrdersStore';
 import { useFilterStore, applyFilters, distinctValues } from '../../store/useFilterStore';
 import { useMasterRulesStore } from '../../store/useMasterRulesStore';
-import { resolveRule } from '../../engine/ruleResolver';
+import { resolveRule, normalizeCustomerId } from '../../engine/ruleResolver';
 import { buildCustomerDirectory } from '../../utils/directories';
 import type { ContainerType, SAPOrderRow } from '../../types';
 
@@ -23,9 +24,13 @@ interface CascadeLevelProps {
   selected: string[];
   onChange: (values: string[]) => void;
   labelFor?: (option: string) => string;
+  /** When true, renders a strict single-select dropdown instead of the default multi-select —
+   * picking a new option always replaces whatever was selected before. `selected`/`onChange` stay
+   * array-shaped (0 or 1 entries) so the rest of the cascade's plumbing doesn't need to change. */
+  singleSelect?: boolean;
 }
 
-function CascadeLevel({ step, label, enabled, disabledReason, options, selected, onChange, labelFor }: CascadeLevelProps) {
+function CascadeLevel({ step, label, enabled, disabledReason, options, selected, onChange, labelFor, singleSelect }: CascadeLevelProps) {
   return (
     <div className="flex items-start gap-3">
       <span
@@ -41,6 +46,14 @@ function CascadeLevel({ step, label, enabled, disabledReason, options, selected,
           <p className="text-sm text-slate-400">{disabledReason}</p>
         ) : options.length === 0 ? (
           <p className="text-sm text-slate-400">No values found in this column.</p>
+        ) : singleSelect ? (
+          <SingleSelectDropdown
+            placeholder={`Select ${label}...`}
+            options={options}
+            selected={selected[0] ?? ''}
+            onChange={(value) => onChange(value ? [value] : [])}
+            labelFor={labelFor}
+          />
         ) : (
           <CheckboxDropdown label={label} options={options} selected={selected} onChange={onChange} labelFor={labelFor} />
         )}
@@ -54,7 +67,8 @@ function CascadeLevel({ step, label, enabled, disabledReason, options, selected,
  * independent PO Number filter on top. Customer names come straight from the imported file, not
  * from a rule having been set up for them. */
 export function Step3PlanningWorkspace({ onNext, onAddRuleForCustomer }: Step3PlanningWorkspaceProps) {
-  const rows = useRawOrdersStore((s) => s.rawImportedRows);
+  const allRows = useRawOrdersStore((s) => s.rawImportedRows);
+  const rows = useMemo(() => usableRows(allRows), [allRows]);
   const removeRows = useRawOrdersStore((s) => s.removeRows);
   const {
     selectedCustomerIds,
@@ -108,19 +122,40 @@ export function Step3PlanningWorkspace({ onNext, onAddRuleForCustomer }: Step3Pl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, selectedCustomerIds, selectedPlants, selectedShipWindows]);
 
-  // A customer with no matching rule at all can't be allocated — flagged here, before the planner
-  // even runs auto-allocation, rather than only surfacing as an opaque "missing rule" list after.
+  // A customer with no Customer Rule row at all gets flagged here, before the planner even runs
+  // auto-allocation, rather than only surfacing as an opaque "missing rule" list after. This checks
+  // customerRules directly (customerId-normalized) — it must NOT be gated on containerSpecs having
+  // a matching row, which was the actual bug here: `containerSpecs.some(spec => resolveRule(...))`
+  // returns false for every customer whenever the Container Specs tab is empty, regardless of how
+  // many real Customer Rules exist, so a genuinely-configured customer still got flagged "No Master
+  // Rule found". Container-Spec coverage is checked separately below, as its own distinct case.
   const customersWithoutRule = useMemo(() => {
     const checked = new Set<string>();
     const missing: SAPOrderRow['customerId'][] = [];
     for (const row of filtered) {
       if (checked.has(row.customerId)) continue;
       checked.add(row.customerId);
-      const hasAnyRule = containerSpecs.some((spec) => resolveRule(row, spec.type as ContainerType, customerRules));
+      const hasAnyRule = customerRules.some((r) => normalizeCustomerId(r.customerId) === normalizeCustomerId(row.customerId));
       if (!hasAnyRule) missing.push(row.customerId);
     }
     return missing;
-  }, [filtered, customerRules, containerSpecs]);
+  }, [filtered, customerRules]);
+
+  // A customer CAN have a real Customer Rule row and still be unallocatable — if none of their
+  // rule(s) have a matching Container Spec row for that same container type, the allocator has a
+  // business limit but no physical container to apply it to. Reported separately from
+  // customersWithoutRule since the fix is different (add a Container Spec, not a Customer Rule).
+  const customersWithRuleButNoSpec = useMemo(() => {
+    const checked = new Set<string>();
+    const affected: SAPOrderRow['customerId'][] = [];
+    for (const row of filtered) {
+      if (checked.has(row.customerId) || customersWithoutRule.includes(row.customerId)) continue;
+      checked.add(row.customerId);
+      const hasUsableSpec = containerSpecs.some((spec) => resolveRule(row, spec.type as ContainerType, customerRules));
+      if (!hasUsableSpec) affected.push(row.customerId);
+    }
+    return affected;
+  }, [filtered, customerRules, containerSpecs, customersWithoutRule]);
 
   // Missing weight silently makes the generated plan wrong (the line "weighs nothing"), so it's
   // surfaced as a warning the planner must either resolve by skipping the PO, or go fix at the
@@ -155,6 +190,7 @@ export function Step3PlanningWorkspace({ onNext, onAddRuleForCustomer }: Step3Pl
           options={plants}
           selected={selectedPlants}
           onChange={setSelectedPlants}
+          singleSelect
         />
         <CascadeLevel
           step={3}
@@ -178,7 +214,7 @@ export function Step3PlanningWorkspace({ onNext, onAddRuleForCustomer }: Step3Pl
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <p className="mb-1 text-sm font-medium text-slate-700">PO Numbers (optional, independent of the cascade above)</p>
-        <CheckboxDropdown label="All POs" options={poNumbers} selected={selectedPoNumbers} onChange={setSelectedPoNumbers} />
+        <CheckboxDropdown label="All POs" placeholder="Select PO Number(s)..." options={poNumbers} selected={selectedPoNumbers} onChange={setSelectedPoNumbers} />
       </div>
 
       {selectedCustomerIds.length > 0 && (
@@ -199,7 +235,10 @@ export function Step3PlanningWorkspace({ onNext, onAddRuleForCustomer }: Step3Pl
                 <TriangleAlert className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 No Master Rule found for Customer ID: {id}
               </p>
-              <p className="text-sm text-amber-700">Add a rule before this customer's orders can be allocated.</p>
+              <p className="text-sm text-amber-700">
+                Allocation will still proceed, using the best-fit container's own physical limits as a default — add a real rule to set this
+                customer's actual business limits instead.
+              </p>
               {onAddRuleForCustomer && (
                 <button
                   type="button"
@@ -210,6 +249,23 @@ export function Step3PlanningWorkspace({ onNext, onAddRuleForCustomer }: Step3Pl
                   Add Rule Now
                 </button>
               )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {customersWithRuleButNoSpec.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          {customersWithRuleButNoSpec.map((id) => (
+            <div key={id} className="flex flex-col gap-2">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-900">
+                <TriangleAlert className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                Customer Rule found for {id}, but no matching Container Spec
+              </p>
+              <p className="text-sm text-amber-700">
+                This customer has a real rule configured, but none of their rule's container type(s) have a matching row in the Container Specs
+                tab — there's a business limit but no physical container to apply it to. Add the missing Container Spec in Master Data.
+              </p>
             </div>
           ))}
         </div>

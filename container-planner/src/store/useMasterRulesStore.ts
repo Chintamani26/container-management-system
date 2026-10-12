@@ -62,9 +62,10 @@ export const useMasterRulesStore = create<MasterRulesState>()(
         deleteHandlingUnitRule: handlingUnitRules.delete,
       };
     },
-    // v5: bumped to drop the old seeded sample rows (CUST-001 "Sample Customer Inc.") that a v4
-    // session may have persisted via the now-removed seedDefaults() — master data is strictly
-    // import/admin-entered now, so a leftover sample row must not resurface on load.
-    { name: 'master-rules-storage-v5' }
+    // v6: bumped to drop any rows a v5 session auto-populated from an Excel import (the "Load
+    // Standard Specs" button's rows, and the dedicated-sheet/embedded-table/per-customer-draft
+    // auto-import logic — all since removed). Master Data is strictly manual-entry now; a leftover
+    // auto-generated row from that now-deleted code path must not resurface on load.
+    { name: 'master-rules-storage-v6' }
   )
 );

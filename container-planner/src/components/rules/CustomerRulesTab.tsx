@@ -61,9 +61,25 @@ export function CustomerRulesTab({ prefillCustomerId, onPrefillConsumed }: Custo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillCustomerId]);
 
+  // Serial order: Customer No ASC, then Container Type ASC within a customer — applied before
+  // filtering so a search result stays in the same order the full table would show it in.
+  const sortedRules = useMemo(
+    () =>
+      [...rules].sort(
+        (a, b) =>
+          a.customerId.localeCompare(b.customerId, undefined, { numeric: true, sensitivity: 'base' }) ||
+          a.containerType.localeCompare(b.containerType, undefined, { numeric: true, sensitivity: 'base' })
+      ),
+    [rules]
+  );
+
   const query = search.trim().toLowerCase();
   const visibleRules =
-    query === '' ? rules : rules.filter((r) => r.customerId.toLowerCase().includes(query) || r.customerName.toLowerCase().includes(query));
+    query === ''
+      ? sortedRules
+      : sortedRules.filter(
+          (r) => r.customerId.toLowerCase().includes(query) || r.customerName.toLowerCase().includes(query) || r.containerType.toLowerCase().includes(query)
+        );
 
   const save = () => {
     if (!editing) return;
@@ -130,7 +146,7 @@ export function CustomerRulesTab({ prefillCustomerId, onPrefillConsumed }: Custo
             {visibleRules.length === 0 && (
               <tr>
                 <td colSpan={13} className="px-3 py-6 text-center text-slate-400">
-                  {rules.length === 0 ? 'No customer rules yet.' : 'No rules match that search.'}
+                  {rules.length === 0 ? 'No customer rules yet.' : 'No matching customer rules found.'}
                 </td>
               </tr>
             )}

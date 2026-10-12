@@ -3,6 +3,9 @@ import { ChevronDown, Search } from 'lucide-react';
 
 export interface CheckboxDropdownProps {
   label: string;
+  /** Shown in the collapsed trigger when nothing is selected, e.g. "Select Customer...". Defaults
+   * to `Select ${label}...` if omitted. */
+  placeholder?: string;
   options: string[];
   selected: string[];
   onChange: (selected: string[]) => void;
@@ -13,8 +16,8 @@ export interface CheckboxDropdownProps {
 
 /** A multi-select dropdown for filter panels — click to open, search, check any number of
  * options, click outside to close. Empty selection conventionally means "no filter on this
- * dimension". */
-export function CheckboxDropdown({ label, options, selected, onChange, labelFor }: CheckboxDropdownProps) {
+ * dimension". The trigger shows the actual selected name(s), not a generic "(N)" count. */
+export function CheckboxDropdown({ label, placeholder, options, selected, onChange, labelFor }: CheckboxDropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -35,8 +38,11 @@ export function CheckboxDropdown({ label, options, selected, onChange, labelFor 
         className="flex w-full items-center justify-between gap-2 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-indigo-400 focus:outline-none"
       >
         <span className="truncate text-left">
-          {label}
-          {selected.length > 0 && <span className="ml-1 text-slate-400">({selected.length})</span>}
+          {selected.length === 0 ? (
+            <span className="text-slate-400">{placeholder ?? `Select ${label}...`}</span>
+          ) : (
+            selected.map((s) => displayLabel(s)).join(', ')
+          )}
         </span>
         <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" aria-hidden="true" />
       </button>

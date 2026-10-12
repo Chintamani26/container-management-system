@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { indexedDbStorage } from './indexedDbStorage';
 import type { SAPOrderRow } from '../types';
 
 interface RawOrdersState {
@@ -13,24 +11,22 @@ interface RawOrdersState {
   clear: () => void;
 }
 
-/** Holds the full imported SAP order extract. Persisted to IndexedDB rather than localStorage —
- * a real export can be thousands of rows, well past localStorage's ~5MB per-origin quota. */
-export const useRawOrdersStore = create<RawOrdersState>()(
-  persist(
-    (set) => ({
-      rawImportedRows: [],
-      setRawImportedRows: (rows) => set({ rawImportedRows: rows }),
-      removeRows: (ids) => {
-        const idSet = new Set(ids);
-        set((state) => ({ rawImportedRows: state.rawImportedRows.filter((r) => !idSet.has(r.id)) }));
-      },
-      clear: () => set({ rawImportedRows: [] }),
-    }),
-    {
-      // v2: bumped alongside the other stores so a stale imported dataset from an earlier schema
-      // can't resurface with fields this code doesn't expect.
-      name: 'raw-orders-storage-v2',
-      storage: createJSONStorage(() => indexedDbStorage),
-    }
-  )
-);
+/** Rows usable for planning/allocation — excludes only rows flagged 'missing_data' (no PO Number
+ * and/or no Material Code), since those can't be grouped/identified at all. Every row is still kept
+ * in `rawImportedRows` itself (100% row preservation); this filter is applied only at the point
+ * planning/allocation consume the data, never to what's stored. */
+export const usableRows = (rows: SAPOrderRow[]): SAPOrderRow[] => rows.filter((r) => r.status !== 'missing_data');
+
+/** Holds the imported SAP order extract — deliberately NOT persisted (no localStorage/IndexedDB
+ * backing). Session-only: it lives only in memory for the lifetime of the current browser tab, so
+ * Step 1 always starts empty on a fresh load/reload, and a file only ever reaches this store when
+ * the user actively uploads it in the current session. */
+export const useRawOrdersStore = create<RawOrdersState>()((set) => ({
+  rawImportedRows: [],
+  setRawImportedRows: (rows) => set({ rawImportedRows: rows }),
+  removeRows: (ids) => {
+    const idSet = new Set(ids);
+    set((state) => ({ rawImportedRows: state.rawImportedRows.filter((r) => !idSet.has(r.id)) }));
+  },
+  clear: () => set({ rawImportedRows: [] }),
+}));

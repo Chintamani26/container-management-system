@@ -48,25 +48,3 @@ export async function parseExcelOrCsv(file: File): Promise<ParsedSheet> {
 
   return { columns: detectColumns(bestRows), rows: bestRows };
 }
-
-/**
- * Parses every non-empty sheet in the workbook (not just the largest) — used to look for a
- * secondary "master data" or "rules" sheet bundled alongside the main order data in the same
- * file, e.g. a tab of Customer Rules shipped together with the PO extract.
- */
-export async function parseAllSheets(file: File): Promise<{ name: string; columns: string[]; rows: Record<string, any>[] }[]> {
-  if (file.size === 0) return [];
-
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-
-  const sheets: { name: string; columns: string[]; rows: Record<string, any>[] }[] = [];
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) continue;
-    const parsed: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-    const rows = parsed.filter((row) => !isBlankRow(row));
-    if (rows.length > 0) sheets.push({ name: sheetName, columns: detectColumns(rows), rows });
-  }
-  return sheets;
-}
