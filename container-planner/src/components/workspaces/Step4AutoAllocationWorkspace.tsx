@@ -13,17 +13,19 @@ export interface Step4AutoAllocationWorkspaceProps {
 }
 
 const ITEM_COLUMNS = [
-  'PO Number',
+  'PO No',
   'Material',
   'Material Description',
   'PO Qty',
-  'Carton Qty',
-  'Weight (kg)',
-  'Net Weight (kg)',
   'VSN No',
   'Customer Product Code',
+  'Carton Qty',
   'Pack Master',
   'Pack Type',
+  'Pack Type 2',
+  'Total CBM',
+  'Total Gross Weight',
+  'Total Net Weight',
 ] as const;
 
 /** One container's full item-level breakdown — every field the warehouse/export team needs, not
@@ -95,13 +97,15 @@ function ContainerDetailCard({ allocation, index, defaultOpen }: { allocation: C
                         </span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-2.5 py-1.5">{item.cartonQty?.toFixed(0) ?? '—'}</td>
-                    <td className="whitespace-nowrap px-2.5 py-1.5">{item.weightKg.toFixed(1)}</td>
-                    <td className="whitespace-nowrap px-2.5 py-1.5">{(item.netWeightKg ?? item.weightKg).toFixed(1)}</td>
                     <td className="whitespace-nowrap px-2.5 py-1.5">{item.vsnNo || '—'}</td>
                     <td className="whitespace-nowrap px-2.5 py-1.5">{item.customerProductCode || '—'}</td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5">{item.cartonQty?.toFixed(0) ?? '—'}</td>
                     <td className="whitespace-nowrap px-2.5 py-1.5">{item.packMaster || '—'}</td>
                     <td className="whitespace-nowrap px-2.5 py-1.5">{item.packType || '—'}</td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5">{item.packType2 || '—'}</td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5">{item.volumeCbm.toFixed(3)}</td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5">{item.weightKg.toFixed(1)}</td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5">{(item.netWeightKg ?? item.weightKg).toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>

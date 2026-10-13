@@ -123,6 +123,7 @@ function toAllocatedItem(order: SAPOrderRow, placedQty: number, isSplit: boolean
     customerProductCode: order.customerProductCode,
     packMaster: order.packMaster,
     packType: order.packType,
+    packType2: order.packType2,
     isSplit,
   };
 }

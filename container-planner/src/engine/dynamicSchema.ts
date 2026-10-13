@@ -17,6 +17,7 @@ export type CanonicalField =
   | 'customerProductCode'
   | 'packMaster'
   | 'packType'
+  | 'packType2'
   | 'cancelDate'
   | 'transportMode'
   | 'containerType'
@@ -41,6 +42,7 @@ export const CANONICAL_FIELD_LABELS: Record<CanonicalField, string> = {
   customerProductCode: 'Customer Product Code',
   packMaster: 'Pack Master',
   packType: 'Pack Type',
+  packType2: 'Pack Type 2',
   cancelDate: 'Cancel Date',
   transportMode: 'Transport Mode',
   containerType: 'Container Type',
@@ -79,6 +81,7 @@ const CANONICAL_ALIASES: Record<CanonicalField, readonly string[]> = {
   customerProductCode: ['customerproductcode', 'custproductcode', 'customeritemcode', 'custitemcode', 'buyerproductcode', 'customermaterialcode'],
   packMaster: ['packmaster', 'packingmaster', 'packmasterno', 'packmastercode'],
   packType: ['packtype', 'packagingtype', 'packingtype'],
+  packType2: ['packtype2', 'packagingtype2', 'packingtype2'],
   cancelDate: ['canceldate', 'plantcanceldate', 'cancellationdate'],
   transportMode: ['transportmode', 'modeoftransport', 'shipmentmode', 'shipby'],
   // Raw text only — used to auto-draft a matching Customer Rule/Container Spec row on import, not

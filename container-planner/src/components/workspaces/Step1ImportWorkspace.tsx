@@ -89,6 +89,7 @@ export function Step1ImportWorkspace({ onNext }: Step1ImportWorkspaceProps) {
         customerProductCode: mapping.customerProductCode ? cellToText(row[mapping.customerProductCode]) : undefined,
         packMaster: mapping.packMaster ? cellToText(row[mapping.packMaster]) : undefined,
         packType: mapping.packType ? cellToText(row[mapping.packType]) : undefined,
+        packType2: mapping.packType2 ? cellToText(row[mapping.packType2]) : undefined,
         cancelDate: mapping.cancelDate ? cellToText(row[mapping.cancelDate]) : undefined,
         transportMode: mapping.transportMode ? cellToText(row[mapping.transportMode]) : undefined,
       }));

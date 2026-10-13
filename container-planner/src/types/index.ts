@@ -37,6 +37,7 @@ export interface SAPOrderRow {
   customerProductCode?: string;
   packMaster?: string;
   packType?: string;
+  packType2?: string;
   /** Raw container type text straight from the file (e.g. "40HC", "LCL"), if the order extract
    * carries its own Container Type column — used only to auto-draft a matching Customer Rule /
    * Container Spec row on import, normalized against the same aliases as a dedicated rules sheet. */
@@ -159,6 +160,7 @@ export interface AllocatedItem {
   customerProductCode?: string;
   packMaster?: string;
   packType?: string;
+  packType2?: string;
   /** True when this line is part of an order that was split across more than one container to
    * keep each container as full as possible. */
   isSplit: boolean;
